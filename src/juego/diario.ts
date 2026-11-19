@@ -1,4 +1,4 @@
-import { generador, mezclar } from './azar';
+import { generador, mezclar } from './azar.js';
 
 /** El viaje N.º 1. Al publicar el juego (paso 8) se corre a la fecha de lanzamiento. */
 export const PRIMER_VIAJE = '2026-11-01';

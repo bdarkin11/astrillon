@@ -857,6 +857,12 @@ function textoPuntos(resultado: ResultadoConsigna): string {
   return `+${resultado.puntos} puntos${turbo}`;
 }
 
+/** El pase dice al principio cuándo vence (en base 36). Los de antes no lo traían y ya no sirven. */
+function paseVigente(pase: string): boolean {
+  const [vence, firma] = pase.split('.');
+  return Boolean(firma) && parseInt(vence, 36) > Date.now();
+}
+
 function detalleConsigna({ resultado, emoji, paradas }: EntradaBitacora, pases: Promise<Record<string, string>>): HTMLElement {
   const detalle = el('details', 'consigna-final');
   const resumen = el('summary');
@@ -881,6 +887,10 @@ function detalleConsigna({ resultado, emoji, paradas }: EntradaBitacora, pases: 
       if (!pase) {
         pedidas = false;
         listado.replaceChildren(el('p', '', 'Las respuestas de este viaje no están disponibles: se ven al terminar un viaje con conexión.'));
+        return;
+      }
+      if (!paseVigente(pase)) {
+        listado.replaceChildren(el('p', '', 'Las respuestas se pueden ver hasta 48 horas después de terminar el viaje.'));
         return;
       }
       Promise.all([pedirRespuestas(id, pase), pedirPorcentajes(id, { pase }).catch(() => null)]).then(

@@ -2,7 +2,9 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { BANCO_DE_EJEMPLO } from '../datos/banco-ejemplo';
 import { bancoDe, calcularTotal, DURACION_DEL_BANCO_MS, ErrorDePedido, MUESTRAS_PARA_PORCENTAJES, porcentajesDe, reportar, responder, respuestasDe, terminar } from './logica';
 import type { Registro } from './logica';
-import { paseDe, paseValido } from './pases';
+import { consignasDelDia } from '../juego/diario';
+import PUBLICAS from '../datos/consignas-publicas.json';
+import { DURACION_DEL_PASE_MS, paseDe, paseValido } from './pases';
 
 beforeAll(() => {
   vi.stubEnv('ASTRILLON_API_SECRETO', 'clave-de-prueba');
@@ -39,6 +41,28 @@ function registroDePrueba(falla = false) {
 }
 
 const JUGADOR = '123e4567-e89b-12d3-a456-426614174000';
+/** Mediodía del 5 de noviembre en Buenos Aires: "hoy" para las pruebas de fechas. */
+const AHORA = Date.parse('2026-11-05T15:00:00Z');
+const HOY = '2026-11-05';
+const DIA_MS = 86_400_000;
+
+/** El orden del viaje de una fecha con el banco de ejemplo, como lo arma el juego. */
+function ordenDe(fecha: string): string[] {
+  return consignasDelDia(fecha, BANCO_DE_EJEMPLO.map((c) => c.id));
+}
+
+/** Una respuesta que el banco acepta para esa consigna. */
+function buenaPara(id: string): string {
+  return BANCO_DE_EJEMPLO.find((c) => c.id === id)!.respuestas[0].nombre;
+}
+
+/** Un viaje del día: `aciertos` respuestas buenas y después `errores` consignas sin respuesta. */
+function viajeDelDia(fecha: string, aciertos: number, errores: number) {
+  const jugadas = ordenDe(fecha)
+    .slice(0, aciertos + errores)
+    .map((id, i) => ({ consignaId: id, texto: i < aciertos ? buenaPara(id) : null, turbo: false }));
+  return { jugador: JUGADOR, fecha, modo: 'regresiva-dos-errores', jugadas };
+}
 
 describe('responder en el servidor', () => {
   it('acepta y anota la respuesta', async () => {
@@ -89,9 +113,12 @@ describe('terminar la partida', () => {
 
   it('guarda la partida con el total calculado por el servidor', async () => {
     const { registro, anotado } = registroDePrueba();
-    const r = await terminar({ jugador: JUGADOR, fecha: '2026-11-05', modo: 'regresiva-dos-errores', total: 99999, jugadas: [{ consignaId: 'mamifero', texto: 'Perro' }] } as never, registro);
-    expect(r.total).toBe(10);
-    expect(anotado.partidas[0].total).toBe(10);
+    const viaje = viajeDelDia(HOY, 3, 2);
+    const r = await terminar({ ...viaje, total: 99999 } as never, registro, AHORA);
+    expect(r.total).toBe(await calcularTotal(viaje.jugadas, registro));
+    expect(r.total).not.toBe(99999);
+    expect(anotado.partidas).toHaveLength(1);
+    expect(anotado.partidas[0].total).toBe(r.total);
   });
 
   it('rechaza datos inválidos', async () => {
@@ -101,6 +128,86 @@ describe('terminar la partida', () => {
     await expect(terminar({ ...base, modo: 'inventado' }, registro)).rejects.toBeInstanceOf(ErrorDePedido);
     await expect(terminar({ ...base, fecha: 'ayer' }, registro)).rejects.toBeInstanceOf(ErrorDePedido);
     await expect(terminar({ ...base, jugadas: Array(101).fill({}) }, registro)).rejects.toBeInstanceOf(ErrorDePedido);
+    await expect(terminar(base, registro)).rejects.toBeInstanceOf(ErrorDePedido);
+  });
+});
+
+describe('qué viajes acepta terminar', () => {
+  it('el viaje del día normal pasa, se guarda y da pases para sus consignas', async () => {
+    const { registro, anotado } = registroDePrueba();
+    const viaje = viajeDelDia(HOY, 3, 2);
+    const r = await terminar(viaje, registro, AHORA);
+    expect(Object.keys(r.pases)).toEqual(viaje.jugadas.map((j) => j.consignaId));
+    expect(anotado.partidas).toHaveLength(1);
+    const id = viaje.jugadas[0].consignaId;
+    expect((await respuestasDe(id, r.pases[id], registro, AHORA)).length).toBeGreaterThan(0);
+  });
+
+  it('rechaza un pedido con las 72 consignas', async () => {
+    const { registro } = registroDePrueba();
+    const todas = PUBLICAS.map((c) => ({ consignaId: c.id, texto: null }));
+    expect(todas).toHaveLength(72);
+    await expect(terminar({ jugador: JUGADOR, fecha: HOY, modo: 'regresiva-dos-errores', jugadas: todas }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    await expect(terminar({ jugador: JUGADOR, fecha: null, modo: 'regresiva-dos-errores', jugadas: todas }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    // Ni siquiera todas las del banco en el orden del día, si no se respondió ninguna.
+    const delDia = ordenDe(HOY).map((id) => ({ consignaId: id, texto: null }));
+    await expect(terminar({ jugador: JUGADOR, fecha: HOY, modo: 'regresiva-dos-errores', jugadas: delDia }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+  });
+
+  it('en el viaje del día exige el orden de esa fecha, el modo principal y nada de Turbo', async () => {
+    const { registro } = registroDePrueba();
+    const viaje = viajeDelDia(HOY, 3, 0);
+    await expect(terminar({ ...viaje, jugadas: [...viaje.jugadas].reverse() }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    await expect(terminar({ ...viaje, jugadas: viaje.jugadas.slice(1) }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    await expect(terminar({ ...viaje, modo: 'clasico' }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    const conTurbo = { ...viaje, jugadas: viaje.jugadas.map((j, i) => ({ ...j, turbo: i === 0 })) };
+    await expect(terminar(conTurbo, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    // El orden de otra fecha tampoco sirve.
+    const deAyer = viajeDelDia('2026-11-04', 3, 0);
+    expect(deAyer.jugadas.map((j) => j.consignaId)).not.toEqual(viaje.jugadas.map((j) => j.consignaId));
+    await expect(terminar({ ...deAyer, fecha: HOY }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+  });
+
+  it('el viaje se corta en el último error, y no repite consignas', async () => {
+    const { registro } = registroDePrueba();
+    const jugadas = ordenDe(HOY)
+      .slice(0, 3)
+      .map((id, i) => ({ consignaId: id, texto: i === 2 ? buenaPara(id) : null }));
+    await expect(terminar({ jugador: JUGADOR, fecha: HOY, modo: 'regresiva-dos-errores', jugadas }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    const repetidas = [{ consignaId: 'fruta', texto: buenaPara('fruta') }, { consignaId: 'fruta', texto: null }];
+    await expect(terminar({ jugador: JUGADOR, fecha: null, modo: 'clasico', jugadas: repetidas }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+  });
+
+  it('rechaza fechas futuras, inexistentes o anteriores al primer viaje', async () => {
+    const { registro } = registroDePrueba();
+    for (const fecha of ['2026-11-07', '2027-01-01', '2026-11-31', '2026-10-31']) {
+      await expect(terminar(viajeDelDia(fecha, 2, 0), registro, AHORA)).rejects.toMatchObject({ message: 'Fecha inválida' });
+    }
+  });
+
+  it('acepta mañana por los husos horarios, y los viajes pasados del archivo', async () => {
+    const { registro, anotado } = registroDePrueba();
+    await terminar(viajeDelDia('2026-11-06', 2, 0), registro, AHORA);
+    await terminar(viajeDelDia('2026-11-01', 2, 1), registro, AHORA);
+    expect(anotado.partidas.map((p) => (p as { fecha?: string }).fecha)).toEqual(['2026-11-06', '2026-11-01']);
+  });
+
+  it('el viaje libre y el que no tuvo ninguna respuesta buena no entran en la comparación', async () => {
+    const { registro, anotado } = registroDePrueba();
+    const libre = await terminar({ jugador: JUGADOR, fecha: null, modo: 'clasico', jugadas: [{ consignaId: 'fruta', texto: buenaPara('fruta') }] }, registro, AHORA);
+    expect(libre.percentil).toBeNull();
+    await terminar(viajeDelDia(HOY, 0, 2), registro, AHORA);
+    expect(anotado.partidas).toHaveLength(0);
+  });
+
+  it('el viaje libre respeta las reglas del modo', async () => {
+    const { registro } = registroDePrueba();
+    const ocho = BANCO_DE_EJEMPLO.map((c) => ({ consignaId: c.id, texto: buenaPara(c.id) }));
+    await expect(terminar({ jugador: JUGADOR, fecha: null, modo: 'clasico', jugadas: ocho }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    const dosTurbos = ocho.slice(0, 3).map((j, i) => ({ ...j, turbo: i < 2 }));
+    await expect(terminar({ jugador: JUGADOR, fecha: null, modo: 'clasico', jugadas: dosTurbos }, registro, AHORA)).rejects.toBeInstanceOf(ErrorDePedido);
+    const r = await terminar({ jugador: JUGADOR, fecha: null, modo: 'regresiva', jugadas: [{ consignaId: 'fruta', texto: null }] }, registro, AHORA);
+    expect(r.pases).toHaveProperty('fruta');
   });
 });
 
@@ -115,6 +222,7 @@ describe('señal perdida y respuestas', () => {
     const { registro } = registroDePrueba();
     await expect(respuestasDe('mamifero', null, registro)).rejects.toMatchObject({ estado: 403 });
     await expect(respuestasDe('mamifero', '0'.repeat(32), registro)).rejects.toMatchObject({ estado: 403 });
+    await expect(respuestasDe('mamifero', `${(Date.now() + 1000).toString(36)}.${'0'.repeat(32)}`, registro)).rejects.toMatchObject({ estado: 403 });
     // El pase de otra consigna no sirve.
     await expect(respuestasDe('mamifero', await paseDe('fruta'), registro)).rejects.toMatchObject({ estado: 403 });
   });
@@ -164,13 +272,41 @@ describe('el banco en la base', () => {
 });
 
 describe('pases', () => {
+  const una = { ahora: AHORA, secreto: 'una' };
+
   it('sólo valen para su consigna y con la misma clave', async () => {
-    const pase = await paseDe('fruta', 'una');
-    expect(pase).toMatch(/^[0-9a-f]{32}$/);
-    expect(await paseValido('fruta', pase, 'una')).toBe(true);
-    expect(await paseValido('fruta', pase, 'otra')).toBe(false);
-    expect(await paseValido('astro', pase, 'una')).toBe(false);
-    expect(await paseValido('fruta', 42, 'una')).toBe(false);
+    const pase = await paseDe('fruta', una);
+    expect(pase).toMatch(/^[0-9a-z]+\.[0-9a-f]{32}$/);
+    expect(await paseValido('fruta', pase, una)).toBe(true);
+    expect(await paseValido('fruta', pase, { ...una, secreto: 'otra' })).toBe(false);
+    expect(await paseValido('astro', pase, una)).toBe(false);
+    expect(await paseValido('fruta', 42, una)).toBe(false);
+  });
+
+  it('vencen a las 48 horas', async () => {
+    const pase = await paseDe('fruta', una);
+    expect(await paseValido('fruta', pase, { ...una, ahora: AHORA + DURACION_DEL_PASE_MS - 1 })).toBe(true);
+    expect(await paseValido('fruta', pase, { ...una, ahora: AHORA + DURACION_DEL_PASE_MS })).toBe(false);
+    expect(await paseValido('fruta', pase, { ...una, ahora: AHORA + 7 * DIA_MS })).toBe(false);
+  });
+
+  it('no se puede estirar el vencimiento ni usar el de otro día', async () => {
+    const [, firma] = (await paseDe('fruta', una)).split('.');
+    const estirado = `${(AHORA + DURACION_DEL_PASE_MS + DIA_MS).toString(36)}.${firma}`;
+    expect(await paseValido('fruta', estirado, una)).toBe(false);
+    // El de un viaje de hace tres días ya no sirve hoy.
+    expect(await paseValido('fruta', await paseDe('fruta', { ...una, ahora: AHORA - 3 * DIA_MS }), una)).toBe(false);
+    // Uno que vence más lejos de lo que da el servidor tampoco.
+    expect(await paseValido('fruta', await paseDe('fruta', { ...una, ahora: AHORA + DIA_MS }), una)).toBe(false);
+  });
+
+  it('un pase vencido no da la lista ni los porcentajes', async () => {
+    const { registro } = registroDePrueba();
+    const r = await terminar(viajeDelDia(HOY, 1, 0), registro, AHORA);
+    const id = Object.keys(r.pases)[0];
+    const despues = AHORA + DURACION_DEL_PASE_MS + 1;
+    await expect(respuestasDe(id, r.pases[id], registro, despues)).rejects.toMatchObject({ estado: 403 });
+    await expect(porcentajesDe(id, registro, { pase: r.pases[id], ahora: despues })).rejects.toMatchObject({ estado: 403 });
   });
 });
 

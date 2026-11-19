@@ -1,3 +1,4 @@
+import { consignasDelDia, fechaDeHoy, PRIMER_VIAJE, sumarDias } from '../juego/diario.js';
 import { MODOS } from '../juego/modos.js';
 import { NIVELES } from '../juego/niveles.js';
 import { calcularPuntos } from '../juego/partida.js';
@@ -102,9 +103,9 @@ export async function responder(cuerpo: { consignaId?: unknown; texto?: unknown 
 const SIN_PASE = 'Las respuestas se ven al terminar un viaje con esta consigna';
 
 /** Las respuestas de una consigna, para la bitácora del final del viaje. Pide el pase que dio terminar. */
-export async function respuestasDe(consignaId: unknown, pase: unknown, registro: Registro) {
+export async function respuestasDe(consignaId: unknown, pase: unknown, registro: Registro, ahora = Date.now()) {
   const consigna = consignaDe(await bancoDe(registro), consignaId);
-  if (!(await paseValido(consigna.id, pase))) throw new ErrorDePedido(SIN_PASE, 403);
+  if (!(await paseValido(consigna.id, pase, { ahora }))) throw new ErrorDePedido(SIN_PASE, 403);
   return consigna.respuestas.map(({ nombre, nivel, dato }) => ({ nombre, nivel, ...(dato ? { dato } : {}) }));
 }
 
@@ -121,9 +122,9 @@ export interface Porcentajes {
  * Con el pase da la lista entera; sin pase, sólo el porcentaje de la respuesta que se pregunta, que el jugador
  * ya conoce porque la acaba de dar: así no se puede sacar la lista de una consigna antes de jugarla.
  */
-export async function porcentajesDe(consignaId: unknown, registro: Registro, opciones: { pase?: unknown; respuesta?: unknown } = {}): Promise<Porcentajes | null> {
+export async function porcentajesDe(consignaId: unknown, registro: Registro, opciones: { pase?: unknown; respuesta?: unknown; ahora?: number } = {}): Promise<Porcentajes | null> {
   const consigna = consignaDe(await bancoDe(registro), consignaId);
-  const conPase = await paseValido(consigna.id, opciones.pase);
+  const conPase = await paseValido(consigna.id, opciones.pase, { ahora: opciones.ahora });
   if (!conPase && typeof opciones.respuesta !== 'string') throw new ErrorDePedido(SIN_PASE, 403);
   let conteos: { respuesta: string; cuenta: number }[];
   try {
@@ -156,6 +157,62 @@ interface Jugada {
   turbo?: unknown;
 }
 
+/** El viaje del día siempre se juega con las reglas del modo principal. */
+const MODO_DIARIO = MODOS[0];
+const VIAJE_INVALIDO = 'El viaje no coincide con las reglas del juego';
+
+/**
+ * Una fecha de viaje del día: desde el primero hasta hoy, con un día de margen por los husos
+ * horarios. Las pasadas son el archivo; las futuras nunca valen.
+ */
+function fechaDeViajeValida(fecha: string, ahora: number): boolean {
+  if (sumarDias(fecha, 0) !== fecha) return false; // descarta fechas que no existen, como el 31 de noviembre
+  return fecha >= PRIMER_VIAJE && fecha <= sumarDias(fechaDeHoy(new Date(ahora)), 1);
+}
+
+/**
+ * Revisa que las jugadas sean un viaje que el juego pudo haber dado: las consignas en el orden de
+ * esa fecha (o sin repetir, en el viaje libre), y que termine donde las reglas del modo lo cortan.
+ * Devuelve cuántas respuestas fueron aceptadas y el total recalculado.
+ */
+function revisarViaje(jugadas: Jugada[], banco: Banco, fecha: string | null, modoId: string): { aciertos: number; total: number } {
+  const modo = MODOS.find((m) => m.id === modoId)!;
+  if (!jugadas.length) throw new ErrorDePedido(VIAJE_INVALIDO);
+  if (jugadas.some((j) => typeof j !== 'object' || j === null || typeof j.consignaId !== 'string' || !banco.has(j.consignaId))) throw new ErrorDePedido(VIAJE_INVALIDO);
+  const ids = jugadas.map((j) => j.consignaId as string);
+  if (new Set(ids).size !== ids.length) throw new ErrorDePedido(VIAJE_INVALIDO);
+
+  if (fecha !== null) {
+    // El del día: mismo modo para todos, sin Turbo, y las consignas exactamente en el orden de esa fecha.
+    if (modo !== MODO_DIARIO || jugadas.some((j) => j.turbo === true)) throw new ErrorDePedido(VIAJE_INVALIDO);
+    const orden = consignasDelDia(fecha, [...banco.keys()]);
+    if (ids.some((id, i) => orden[i] !== id)) throw new ErrorDePedido(VIAJE_INVALIDO);
+  } else if (jugadas.filter((j) => j.turbo === true).length > 1) {
+    throw new ErrorDePedido(VIAJE_INVALIDO);
+  }
+  if (modo.limiteConsignas !== null && jugadas.length > modo.limiteConsignas) throw new ErrorDePedido(VIAJE_INVALIDO);
+
+  let aciertos = 0;
+  let total = 0;
+  const errores: number[] = [];
+  jugadas.forEach((jugada, i) => {
+    const consigna = banco.get(jugada.consignaId as string)!;
+    const validacion = typeof jugada.texto === 'string' && jugada.texto.trim() ? validar(jugada.texto, consigna) : null;
+    if (validacion?.tipo === 'aceptada') {
+      aciertos += 1;
+      total += calcularPuntos(NIVELES[validacion.respuesta.nivel], jugada.turbo === true);
+    } else {
+      errores.push(i);
+    }
+  });
+  // Con los errores del modo el viaje se corta: no puede haber más, ni consignas después del último.
+  const limite = modo.erroresParaTerminar;
+  if (limite !== null && (errores.length > limite || (errores.length === limite && errores[limite - 1] !== jugadas.length - 1))) {
+    throw new ErrorDePedido(VIAJE_INVALIDO);
+  }
+  return { aciertos, total };
+}
+
 /** Vuelve a calcular el puntaje con el banco: el total que mande el navegador no se usa nunca. */
 export async function calcularTotal(jugadas: Jugada[], registro: Registro): Promise<number> {
   const banco = await bancoDe(registro);
@@ -169,17 +226,20 @@ export async function calcularTotal(jugadas: Jugada[], registro: Registro): Prom
   return total;
 }
 
-export async function terminar(cuerpo: { jugador?: unknown; fecha?: unknown; modo?: unknown; jugadas?: unknown }, registro: Registro) {
+export async function terminar(cuerpo: { jugador?: unknown; fecha?: unknown; modo?: unknown; jugadas?: unknown }, registro: Registro, ahora = Date.now()) {
   if (typeof cuerpo.jugador !== 'string' || !FORMATO_DE_JUGADOR.test(cuerpo.jugador)) throw new ErrorDePedido('Jugador inválido');
   if (typeof cuerpo.modo !== 'string' || !MODOS.some((m) => m.id === cuerpo.modo)) throw new ErrorDePedido('Modo inválido');
   const fecha = cuerpo.fecha === null || cuerpo.fecha === undefined ? null : cuerpo.fecha;
-  if (fecha !== null && (typeof fecha !== 'string' || !FORMATO_DE_FECHA.test(fecha))) throw new ErrorDePedido('Fecha inválida');
+  if (fecha !== null && (typeof fecha !== 'string' || !FORMATO_DE_FECHA.test(fecha) || !fechaDeViajeValida(fecha, ahora))) throw new ErrorDePedido('Fecha inválida');
   if (!Array.isArray(cuerpo.jugadas) || cuerpo.jugadas.length > JUGADAS_MAXIMAS) throw new ErrorDePedido('Jugadas inválidas');
   const jugadas = cuerpo.jugadas as Jugada[];
-  const total = await calcularTotal(jugadas, registro);
-  const resultado = await registro.partida({ jugador: cuerpo.jugador, fecha, modo: cuerpo.modo, total, consignas: jugadas.length });
-  // Con el viaje terminado, se habilita ver las listas de sus consignas.
-  const ids = [...new Set(jugadas.map((j) => j.consignaId as string))];
-  const pases = Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await paseDe(id)] as const)));
+  const { aciertos, total } = revisarViaje(jugadas, await bancoDe(registro), fecha, cuerpo.modo);
+  // Sólo el viaje del día con alguna respuesta buena entra en la comparación con el resto.
+  const resultado =
+    fecha !== null && aciertos > 0
+      ? await registro.partida({ jugador: cuerpo.jugador, fecha, modo: cuerpo.modo, total, consignas: jugadas.length })
+      : { percentil: null, muestras: 0 };
+  // Con el viaje terminado, se habilita ver las listas de sus consignas por un tiempo.
+  const pases = Object.fromEntries(await Promise.all(jugadas.map(async (j) => [j.consignaId as string, await paseDe(j.consignaId as string, { ahora })] as const)));
   return { total, ...resultado, pases };
 }

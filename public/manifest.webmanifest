@@ -1,0 +1,17 @@
+{
+  "name": "Astrillón",
+  "short_name": "Astrillón",
+  "description": "Cuanto más rara tu respuesta, más lejos viaja tu nave.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#16123a",
+  "theme_color": "#16123a",
+  "icons": [
+    { "src": "/iconos/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/iconos/icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/iconos/icono-mascara-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

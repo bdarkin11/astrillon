@@ -1,0 +1,25 @@
+# Dependencias y compilados
+node_modules
+dist
+
+# Datos descargados, se regeneran con scripts/banco/descargar.mjs
+scripts/banco/cache
+
+# El banco real de respuestas: vive en Supabase y se sube con scripts/subir-banco.mjs.
+# Para desarrollar sin él está src/datos/banco-ejemplo.json.
+privado/
+
+# Claves y configuración local: nunca se suben
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
+
+# Herramientas y registros locales
+.claude
+.playwright-mcp
+*.log

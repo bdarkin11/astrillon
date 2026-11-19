@@ -1,0 +1,290 @@
+[
+ {
+  "id": "fruta",
+  "texto": "Nombrá una fruta"
+ },
+ {
+  "id": "astro",
+  "texto": "Nombrá un planeta o una luna del sistema solar"
+ },
+ {
+  "id": "golosina",
+  "texto": "Nombrá una golosina de kiosco"
+ },
+ {
+  "id": "rio",
+  "texto": "Nombrá un río"
+ },
+ {
+  "id": "instrumento",
+  "texto": "Nombrá un instrumento musical"
+ },
+ {
+  "id": "color",
+  "texto": "Nombrá un color"
+ },
+ {
+  "id": "provincia",
+  "texto": "Nombrá una provincia argentina"
+ },
+ {
+  "id": "deporte",
+  "texto": "Nombrá un deporte"
+ },
+ {
+  "id": "verdura",
+  "texto": "Nombrá una verdura"
+ },
+ {
+  "id": "flor",
+  "texto": "Nombrá una flor"
+ },
+ {
+  "id": "ave",
+  "texto": "Nombrá un ave"
+ },
+ {
+  "id": "arbol",
+  "texto": "Nombrá un árbol"
+ },
+ {
+  "id": "comida",
+  "texto": "Nombrá una comida típica argentina"
+ },
+ {
+  "id": "herramienta",
+  "texto": "Nombrá una herramienta"
+ },
+ {
+  "id": "moneda",
+  "texto": "Nombrá una moneda de algún país"
+ },
+ {
+  "id": "dinosaurio",
+  "texto": "Nombrá un dinosaurio"
+ },
+ {
+  "id": "hueso",
+  "texto": "Nombrá un hueso del cuerpo humano"
+ },
+ {
+  "id": "pais-sudamerica",
+  "texto": "Nombrá un país de Sudamérica"
+ },
+ {
+  "id": "barrio",
+  "texto": "Nombrá un barrio de la Ciudad de Buenos Aires"
+ },
+ {
+  "id": "especia",
+  "texto": "Nombrá una especia o un condimento"
+ },
+ {
+  "id": "bebida",
+  "texto": "Nombrá una bebida"
+ },
+ {
+  "id": "postre",
+  "texto": "Nombrá un postre"
+ },
+ {
+  "id": "pasta",
+  "texto": "Nombrá un tipo de pasta"
+ },
+ {
+  "id": "pez",
+  "texto": "Nombrá un pez"
+ },
+ {
+  "id": "mamifero",
+  "texto": "Nombrá un mamífero"
+ },
+ {
+  "id": "insecto",
+  "texto": "Nombrá un insecto"
+ },
+ {
+  "id": "reptil",
+  "texto": "Nombrá un reptil"
+ },
+ {
+  "id": "ropa",
+  "texto": "Nombrá una prenda de ropa"
+ },
+ {
+  "id": "mueble",
+  "texto": "Nombrá un mueble"
+ },
+ {
+  "id": "electro",
+  "texto": "Nombrá un electrodoméstico"
+ },
+ {
+  "id": "profesion",
+  "texto": "Nombrá una profesión u oficio"
+ },
+ {
+  "id": "juego-mesa",
+  "texto": "Nombrá un juego de mesa"
+ },
+ {
+  "id": "materia",
+  "texto": "Nombrá una materia del colegio"
+ },
+ {
+  "id": "baile",
+  "texto": "Nombrá un baile"
+ },
+ {
+  "id": "queso",
+  "texto": "Nombrá un tipo de queso"
+ },
+ {
+  "id": "helado",
+  "texto": "Nombrá un gusto de helado"
+ },
+ {
+  "id": "transporte",
+  "texto": "Nombrá un medio de transporte"
+ },
+ {
+  "id": "util",
+  "texto": "Nombrá un útil escolar"
+ },
+ {
+  "id": "pizza",
+  "texto": "Nombrá un gusto de pizza"
+ },
+ {
+  "id": "jugador-seleccion",
+  "texto": "Nombrá un jugador que haya jugado en la Selección Argentina"
+ },
+ {
+  "id": "club-argentino",
+  "texto": "Nombrá un club de fútbol argentino"
+ },
+ {
+  "id": "ciudad-argentina",
+  "texto": "Nombrá una ciudad argentina"
+ },
+ {
+  "id": "volcan",
+  "texto": "Nombrá un volcán"
+ },
+ {
+  "id": "mar",
+  "texto": "Nombrá un mar"
+ },
+ {
+  "id": "idioma",
+  "texto": "Nombrá un idioma"
+ },
+ {
+  "id": "pintor",
+  "texto": "Nombrá a un pintor o una pintora"
+ },
+ {
+  "id": "filosofo",
+  "texto": "Nombrá a un filósofo o una filósofa"
+ },
+ {
+  "id": "escritor-argentino",
+  "texto": "Nombrá a un escritor o escritora de Argentina"
+ },
+ {
+  "id": "cantante-argentino",
+  "texto": "Nombrá a un cantante o una cantante de Argentina"
+ },
+ {
+  "id": "marca-auto",
+  "texto": "Nombrá una marca de autos"
+ },
+ {
+  "id": "pixar",
+  "texto": "Nombrá una película de Pixar"
+ },
+ {
+  "id": "disney",
+  "texto": "Nombrá una película animada de Disney"
+ },
+ {
+  "id": "beatles",
+  "texto": "Nombrá una canción de los Beatles"
+ },
+ {
+  "id": "pais",
+  "texto": "Nombrá un país"
+ },
+ {
+  "id": "pais-africa",
+  "texto": "Nombrá un país de África"
+ },
+ {
+  "id": "pais-europa",
+  "texto": "Nombrá un país de Europa"
+ },
+ {
+  "id": "pais-asia",
+  "texto": "Nombrá un país de Asia"
+ },
+ {
+  "id": "capital-mundo",
+  "texto": "Nombrá la capital de un país"
+ },
+ {
+  "id": "banda-argentina",
+  "texto": "Nombrá una banda de música argentina"
+ },
+ {
+  "id": "pelicula-argentina",
+  "texto": "Nombrá una película argentina"
+ },
+ {
+  "id": "elemento",
+  "texto": "Nombrá un elemento químico"
+ },
+ {
+  "id": "constelacion",
+  "texto": "Nombrá una constelación"
+ },
+ {
+  "id": "raza-perro",
+  "texto": "Nombrá una raza de perro"
+ },
+ {
+  "id": "raza-gato",
+  "texto": "Nombrá una raza de gato"
+ },
+ {
+  "id": "dios-griego",
+  "texto": "Nombrá un dios o una diosa griega"
+ },
+ {
+  "id": "nobel-literatura",
+  "texto": "Nombrá a alguien que ganó el Nobel de Literatura"
+ },
+ {
+  "id": "oscar-pelicula",
+  "texto": "Nombrá una película que ganó el Oscar a Mejor Película"
+ },
+ {
+  "id": "simpson",
+  "texto": "Nombrá un personaje de Los Simpson"
+ },
+ {
+  "id": "harry-potter",
+  "texto": "Nombrá un personaje de Harry Potter"
+ },
+ {
+  "id": "lago",
+  "texto": "Nombrá un lago"
+ },
+ {
+  "id": "montana",
+  "texto": "Nombrá una montaña"
+ },
+ {
+  "id": "papa",
+  "texto": "Nombrá a un papa"
+ }
+]

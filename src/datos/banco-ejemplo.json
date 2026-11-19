@@ -1,0 +1,87 @@
+[
+  {
+    "id": "fruta",
+    "texto": "Nombrá una fruta",
+    "admiteVariedades": true,
+    "respuestas": [
+      { "nombre": "Pitanga", "nivel": "astrillon", "alias": [], "dato": "Dato de ejemplo: este banco es ficticio y sólo sirve para las pruebas." },
+      { "nombre": "Guanábana", "nivel": "cometa", "alias": [] },
+      { "nombre": "Granada", "nivel": "cometa", "alias": [] },
+      { "nombre": "Kiwi", "nivel": "satelite", "alias": [] },
+      { "nombre": "Manzana", "nivel": "basura", "alias": [] },
+      { "nombre": "Naranja", "nivel": "basura", "alias": [] },
+      { "nombre": "Uva", "nivel": "basura", "alias": [] },
+      { "nombre": "Sandía", "nivel": "basura", "alias": [] },
+      { "nombre": "Frutilla", "nivel": "basura", "alias": ["Fresa"] }
+    ]
+  },
+  {
+    "id": "astro",
+    "texto": "Nombrá un planeta o una luna del sistema solar",
+    "prefijos": ["planeta", "luna"],
+    "respuestas": [
+      { "nombre": "Miranda", "nivel": "astrillon", "alias": [] },
+      { "nombre": "Titán", "nivel": "cometa", "alias": [] },
+      { "nombre": "Marte", "nivel": "basura", "alias": [] },
+      { "nombre": "Luna", "nivel": "basura", "alias": [] }
+    ]
+  },
+  {
+    "id": "golosina",
+    "texto": "Nombrá una golosina",
+    "respuestas": [
+      { "nombre": "Golosina de ejemplo", "nivel": "astrillon", "alias": [] },
+      { "nombre": "Mogul", "nivel": "satelite", "alias": [] },
+      { "nombre": "Alfajor", "nivel": "basura", "alias": [] }
+    ]
+  },
+  {
+    "id": "rio",
+    "texto": "Nombrá un río",
+    "prefijos": ["rio"],
+    "respuestas": [
+      { "nombre": "Río de ejemplo", "nivel": "astrillon", "alias": [] },
+      { "nombre": "De la Plata", "nivel": "satelite", "alias": [] },
+      { "nombre": "Nilo", "nivel": "basura", "alias": [] }
+    ]
+  },
+  {
+    "id": "instrumento",
+    "texto": "Nombrá un instrumento musical",
+    "respuestas": [
+      { "nombre": "Instrumento de ejemplo", "nivel": "astrillon", "alias": [] },
+      { "nombre": "Guitarra", "nivel": "basura", "alias": [] }
+    ]
+  },
+  {
+    "id": "color",
+    "texto": "Nombrá un color",
+    "admiteVariedades": true,
+    "respuestas": [
+      { "nombre": "Color de ejemplo", "nivel": "astrillon", "alias": [] },
+      { "nombre": "Rojo", "nivel": "basura", "alias": [] }
+    ]
+  },
+  {
+    "id": "provincia",
+    "texto": "Nombrá una provincia argentina",
+    "respuestas": [
+      { "nombre": "Provincia de ejemplo", "nivel": "astrillon", "alias": [] },
+      { "nombre": "Córdoba", "nivel": "basura", "alias": [] }
+    ]
+  },
+  {
+    "id": "mamifero",
+    "texto": "Nombrá un mamífero",
+    "admiteVariedades": true,
+    "respuestas": [
+      { "nombre": "Mamífero de ejemplo", "nivel": "astrillon", "alias": [] },
+      { "nombre": "Oso hormiguero", "nivel": "nebulosa", "alias": [] },
+      { "nombre": "Marmota", "nivel": "cometa", "alias": [] },
+      { "nombre": "Oso polar", "nivel": "cometa", "alias": [] },
+      { "nombre": "Zorro", "nivel": "satelite", "alias": [] },
+      { "nombre": "Oso", "nivel": "basura", "alias": [] },
+      { "nombre": "Perro", "nivel": "basura", "alias": [] }
+    ]
+  }
+]
